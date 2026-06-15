@@ -1,4 +1,4 @@
-# RBI — Rug Bureau of Investigation
+# RBI - Rug Bureau of Investigation
 
 A community rug-pull registry for pump.fun, styled as a "most wanted" bulletin.
 Every entry is built from public data: token mints, deployer wallets, extracted
@@ -9,21 +9,20 @@ it does not collect a private person's contact details or name who someone is.
 
 ## What's wired
 
-- **Public wall.** `/api/records` serves the confirmed + flagged entries; the
+- Public wall. `/api/records` serves the confirmed + flagged entries; the
   bulletin reads them on load, with an offline seed on first paint.
-- **AI verify gate.** Tips POST to `/api/report`. The deployer wallet's Helius
+- AI verify gate. Tips POST to `/api/report`. The deployer wallet's Helius
   history runs through the Claude analyzer for an on-chain verdict.
-- **Proof screenshots.** A submitter can attach a pump.fun / chart / explorer
+- Proof screenshots. A submitter can attach a pump.fun / chart / explorer
   screenshot. Claude's vision model screens every image: it must be a real
   token-page screenshot, with no person's face and nothing unsafe, or the whole
   submission is refused before anything is stored. Accepted images go to
   Supabase Storage and show as an exhibit on the poster.
-- **Known channel.** The poster links the X / socials the token itself listed on
+- Known channel. The poster links the X / socials the token itself listed on
   pump.fun -- the account that promoted the coin, not a private individual.
-- **Acceptance + manual approval.** A submission enters the queue only if the
-  chain backs it or a verified screenshot is attached -- then it sits as
-  `pending` (hidden) until you promote it to `confirmed` in Supabase. Keep that
-  human gate.
+- Acceptance + manual approval. A submission enters the queue only if the chain
+  backs it or a verified screenshot is attached -- then it sits as `pending`
+  (hidden) until you promote it to `confirmed` in Supabase. Keep that human gate.
 
 ## Structure
 
