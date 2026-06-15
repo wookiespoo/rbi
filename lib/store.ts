@@ -47,6 +47,7 @@ function toUi(row: any) {
     tags: row.tags ?? [],
     projectX: row.project_x,
     solStolen: row.sol_stolen != null ? Number(row.sol_stolen) : null,
+    confidence: row.confidence != null ? Number(row.confidence) : null,
     imageUrl: row.image_url ?? null,
     date: (row.created_at ?? "").slice(0, 10),
   };
@@ -114,4 +115,28 @@ export async function uploadEvidence(dataUrl: string): Promise<string | null> {
     console.error("uploadEvidence error:", err);
     return null;
   }
+}
+
+/** Moderation queue: everything awaiting review. Admin-only. */
+export async function listPendingRecords() {
+  const { data, error } = await sb()
+    .from("records")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(toUi);
+}
+
+/** Set a record's status by id (preferred) or token. Admin-only. */
+export async function setRecordStatus(
+  ref: { id?: number; token?: string },
+  status: "confirmed" | "flagged" | "pending" | "rejected",
+) {
+  let q = sb().from("records").update({ status });
+  if (ref.id != null) q = q.eq("id", ref.id);
+  else if (ref.token) q = q.eq("token", ref.token);
+  else throw new Error("setRecordStatus needs an id or token");
+  const { error } = await q;
+  if (error) throw error;
 }
