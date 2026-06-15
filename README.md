@@ -1,10 +1,11 @@
 # RBI — Rug Bureau of Investigation
 
 A community rug-pull registry for pump.fun, styled as a "most wanted" bulletin.
-Every entry is on-chain: token mints, deployer wallets, extracted SOL, and
-observed behavior flags — plus an optional screenshot of the token's pump.fun
-page as proof. No personal identities, contact channels, or photos of people:
-wallets and public token/market data only.
+Every entry is built from public data: token mints, deployer wallets, extracted
+SOL, observed behavior flags, the channels the coin itself listed on its
+pump.fun page (its X / site / Telegram), and an optional screenshot of that page
+as proof. The board surfaces a token's OWN public metadata and on-chain facts --
+it does not collect a private person's contact details or name who someone is.
 
 ## What's wired
 
@@ -17,10 +18,12 @@ wallets and public token/market data only.
   token-page screenshot, with no person's face and nothing unsafe, or the whole
   submission is refused before anything is stored. Accepted images go to
   Supabase Storage and show as an exhibit on the poster.
+- **Known channel.** The poster links the X / socials the token itself listed on
+  pump.fun -- the account that promoted the coin, not a private individual.
 - **Acceptance + manual approval.** A submission enters the queue only if the
-  chain backs it or a verified screenshot is attached — then it sits as
-  `pending` (hidden) until you promote it to `confirmed` in Supabase. That human
-  gate is intentional; keep it.
+  chain backs it or a verified screenshot is attached -- then it sits as
+  `pending` (hidden) until you promote it to `confirmed` in Supabase. Keep that
+  human gate.
 
 ## Structure
 
@@ -47,5 +50,4 @@ wallets and public token/market data only.
 ## Deploy (Vercel)
 
 Push to GitHub, import in Vercel, add the four env vars in project settings.
-Clients init lazily so the build never needs the secrets. `.env` is gitignored --
-keys never leave your machine.
+Clients init lazily so the build never needs the secrets. `.env` is gitignored.
