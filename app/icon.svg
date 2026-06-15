@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#E7DEC9"/>
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#1B1712" stroke-width="4"/>
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#1B1712" stroke-width="1.5"/>
+  <polyline points="28,34 42,46 52,40 64,54" fill="none" stroke="#A8261E" stroke-width="5" stroke-linecap="square"/>
+  <polyline points="58,54 64,54 64,48" fill="none" stroke="#A8261E" stroke-width="5" stroke-linecap="square"/>
+  <text x="50" y="76" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#1B1712">RBI</text>
+</svg>
