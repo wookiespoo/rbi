@@ -1,12 +1,14 @@
 // app/api/report/route.ts — the verify gate.
-// A community report is checked against on-chain data. Only chain-backed
-// reports reach the review queue (status "pending"); the rest are rejected,
-// so false accusations never sit in front of a reviewer or hit the wall.
+// A community report is checked against on-chain data AND, if a screenshot is
+// attached, against Claude's vision screen. It is accepted only if the chain
+// backs it or a valid proof screenshot is attached — and even then it lands as
+// "pending" (hidden) for manual review, never auto-published. False or
+// unverifiable accusations never reach a reviewer or the wall.
 
 import { NextResponse } from "next/server";
-import { verifyReport } from "@/lib/analyzeDeployer";
+import { verifyReport, verifyEvidenceImage } from "@/lib/analyzeDeployer";
 import { getWalletEvents } from "@/lib/chain";
-import { upsertRecord } from "@/lib/store";
+import { upsertRecord, uploadEvidence } from "@/lib/store";
 
 export async function POST(req: Request) {
   try {
@@ -15,43 +17,77 @@ export async function POST(req: Request) {
     const reason = (body.reason ?? "").trim();
     const name = (body.name ?? "").trim() || undefined;
     const deployer = (body.deployer ?? "").trim() || undefined;
+    const image =
+      typeof body.image === "string" && body.image.startsWith("data:image/") ? body.image : null;
 
     if (!token || !reason) {
-      return NextResponse.json({ accepted: false, message: "Token and description are required." }, { status: 400 });
+      return NextResponse.json(
+        { accepted: false, message: "Token and description are required." },
+        { status: 400 },
+      );
     }
 
-    // Verify against the deployer wallet if given, else whatever was submitted.
+    // 1) On-chain check against the deployer wallet (or whatever was submitted).
     const subject = deployer ?? token;
     const events = await getWalletEvents(subject);
-    const { supported, reason: why, analysis } = await verifyReport(reason, {
+    const { supported: chainOk, analysis } = await verifyReport(reason, {
       wallet: subject,
       tokenMint: token,
       tokenName: name,
       events,
     });
 
-    if (!supported) {
-      // Not chain-backed — log as rejected, never enters the public queue.
-      await upsertRecord({ token, deployer, name, reason, source: "community", status: "rejected" });
-      return NextResponse.json({ accepted: false, message: "Couldn't verify this against on-chain data, so it wasn't added." });
+    // 2) Screenshot check (optional). A submitted image MUST be a real token
+    //    page / chart screenshot, show no person's face, and be safe — or the
+    //    whole submission is refused before anything is stored.
+    let imageUrl: string | null = null;
+    if (image) {
+      const check = await verifyEvidenceImage(image);
+      if (!check.isEvidence || check.hasPerson || !check.safe) {
+        return NextResponse.json({
+          accepted: false,
+          message: check.hasPerson
+            ? "That image shows a person — only token-page or chart screenshots are allowed."
+            : "That image isn't a valid pump.fun / chart screenshot, so it wasn't added.",
+        });
+      }
+      imageUrl = await uploadEvidence(image);
     }
 
-    // Chain-backed — enters the review queue with the evidence attached.
+    // 3) Accept only if the chain backs it OR a verified screenshot is attached.
+    if (!chainOk && !imageUrl) {
+      await upsertRecord({ token, deployer, name, reason, source: "community", status: "rejected" });
+      return NextResponse.json({
+        accepted: false,
+        message: "Couldn't verify this against on-chain data or a valid screenshot, so it wasn't added.",
+      });
+    }
+
     await upsertRecord({
       token,
       deployer,
       name,
       reason,
       source: "community",
-      status: "pending",
-      tags: analysis.tags,
-      solStolen: analysis.solExtracted,
-      confidence: analysis.confidence,
-      evidenceTxs: analysis.evidenceTxs,
+      status: "pending", // hidden until a human approves it in Supabase
+      imageUrl,
+      tags: chainOk ? analysis.tags : [],
+      solStolen: chainOk ? analysis.solExtracted : null,
+      confidence: chainOk ? analysis.confidence : null,
+      evidenceTxs: chainOk ? analysis.evidenceTxs : [],
     });
-    return NextResponse.json({ accepted: true, message: "Chain-backed — sent to the review queue." });
+
+    return NextResponse.json({
+      accepted: true,
+      message: chainOk
+        ? "Verified on-chain — sent to the review queue."
+        : "Proof screenshot accepted — sent to the review queue.",
+    });
   } catch (err) {
     console.error("POST /api/report failed:", err);
-    return NextResponse.json({ accepted: false, message: "Submission failed — try again." }, { status: 500 });
+    return NextResponse.json(
+      { accepted: false, message: "Submission failed — try again." },
+      { status: 500 },
+    );
   }
 }

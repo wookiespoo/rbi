@@ -151,3 +151,62 @@ export async function verifyReport(
  *   return NextResponse.json(analysis);
  * }
  * ------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+ * Evidence image screen — the vision gate for uploaded proof.
+ *
+ * A submitted image is ONLY allowed if it is a screenshot of a token page,
+ * chart, DEX/terminal, or block explorer. Anything that is a photo of a
+ * person, a face, or unsafe content is rejected before it can be stored.
+ * This keeps the board a wall of on-chain receipts, not a board of faces.
+ * ------------------------------------------------------------------------- */
+
+export interface ImageCheck {
+  isEvidence: boolean; // pump.fun / chart / DEX / explorer / wallet screenshot
+  hasPerson: boolean;  // a real human face / identifiable person is visible
+  safe: boolean;       // no sexual, violent, or otherwise disallowed content
+  summary: string;
+}
+
+const IMAGE_SYSTEM = `You screen one image submitted as "proof" to a pump.fun rug-pull registry.
+Acceptable evidence is ONLY a screenshot of: a pump.fun token page, a DEX/trading
+terminal, a price or market-cap chart, a block explorer (e.g. Solscan), or a
+wallet / transaction view.
+Return a single JSON object and nothing else:
+{"isEvidence": true|false, "hasPerson": true|false, "safe": true|false, "summary": "one short sentence"}
+- isEvidence: true ONLY if it is clearly one of the screenshot types above.
+- hasPerson: true if a real human face or identifiable person appears.
+- safe: false for any sexual content, nudity, graphic violence/gore, or exploitative content.
+Be strict. A photo of a person, a meme with a face, or anything unrelated is NOT evidence.`;
+
+export async function verifyEvidenceImage(dataUrl: string): Promise<ImageCheck> {
+  try {
+    const m = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+    if (!m) return { isEvidence: false, hasPerson: false, safe: true, summary: "Unreadable image." };
+    const media_type = m[1] as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+    const data = m[2];
+    const msg = await client().messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 300,
+      system: IMAGE_SYSTEM,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type, data } },
+            { type: "text", text: "Screen this image. Return only the JSON." },
+          ],
+        },
+      ],
+    });
+    const text = msg.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+    return JSON.parse(text.replace(/```json|```/g, "").trim()) as ImageCheck;
+  } catch (err) {
+    // Fail closed: if we can't screen it, we don't accept it as evidence.
+    console.error("verifyEvidenceImage failed:", err);
+    return { isEvidence: false, hasPerson: false, safe: true, summary: "Image check unavailable." };
+  }
+}

@@ -59,7 +59,7 @@ const STAMP = {
   pending: { label: "Tip Pending", color: P.navy },
 };
 
-const SOURCE = { bot: "Bot reject", manual: "Bureau filing", community: "Community tip" };
+const SOURCE = { screen: "On-chain screen", manual: "Bureau filing", community: "Community tip" };
 
 function hashStr(s) {
   let h = 0;
@@ -169,6 +169,13 @@ function PosterCard({ rec, featured }) {
         </div>
       )}
 
+      {rec.imageUrl && (
+        <div className="wb-exhibit">
+          <div className="wb-exhibit-h">— Exhibit · pump.fun —</div>
+          <img src={rec.imageUrl} alt={`${rec.ticker || "token"} pump.fun screenshot`} loading="lazy" />
+        </div>
+      )}
+
       <div className="wb-poster-foot">
         CASE NO. {String(rec.id).padStart(4, "0")} · FILED {rec.date} · {SOURCE[rec.source] || "—"}
       </div>
@@ -180,7 +187,7 @@ export default function WallOfShame() {
   const [records, setRecords] = useState(SEED);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
-  const [form, setForm] = useState({ token: "", reason: "", sol: "", alias: "" });
+  const [form, setForm] = useState({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "" });
   const [flash, setFlash] = useState("");
 
   useEffect(() => {
@@ -209,25 +216,42 @@ export default function WallOfShame() {
       .sort((a, b) => b.id - a.id);
   }, [records, q, filter, featured]);
 
+  const onPick = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setFlash("Only image screenshots can be attached."); return; }
+    if (file.size > 4 * 1024 * 1024) { setFlash("Screenshot too large — keep it under 4MB."); return; }
+    const reader = new FileReader();
+    reader.onload = () => setForm((f) => ({ ...f, image: String(reader.result), imgName: file.name }));
+    reader.readAsDataURL(file);
+  };
+
   const handleReport = async () => {
     if (!form.token.trim() || !form.reason.trim()) {
       setFlash("A wallet or mint and a statement of facts are both required.");
       return;
     }
-    setFlash("Checking it against the chain…");
+    setFlash(form.image ? "Checking the chain and screening the screenshot…" : "Checking it against the chain…");
     try {
       const res = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: form.token.trim(), name: form.alias.trim(), reason: form.reason.trim(), sol: form.sol }),
+        body: JSON.stringify({
+          token: form.token.trim(),
+          name: form.alias.trim(),
+          reason: form.reason.trim(),
+          sol: form.sol,
+          image: form.image || undefined,
+        }),
       });
       const data = await res.json();
-      setForm({ token: "", reason: "", sol: "", alias: "" });
+      setForm({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "" });
       setFlash(data.message || (data.accepted ? "Tip filed for review." : "Not filed."));
     } catch {
       setFlash("Filing failed — try again.");
     }
-    setTimeout(() => setFlash(""), 5000);
+    setTimeout(() => setFlash(""), 6000);
   };
 
   return (
@@ -289,6 +313,15 @@ export default function WallOfShame() {
         .wb-foot-note{text-align:center;font-size:10.5px;letter-spacing:.08em;color:${P.faint};margin-top:22px;text-transform:uppercase;}
         .wb-root ::placeholder{color:${P.faint};}
         .wb-root input:focus,.wb-root textarea:focus{outline:2px solid ${P.navy};outline-offset:1px;}
+        .wb-exhibit{margin-top:14px;border-top:1px dashed ${P.rule};padding-top:10px;}
+        .wb-exhibit-h{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.2em;font-size:10px;color:${P.faint};text-align:center;margin-bottom:8px;text-transform:uppercase;}
+        .wb-exhibit img{display:block;width:100%;border:2px solid ${P.rule};background:#0d0d0d;}
+        .wb-upload{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+        .wb-upbtn{display:inline-block;background:${P.paper};border:2px dashed ${P.rule};padding:9px 14px;font-family:'Oswald',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:${P.ink2};cursor:pointer;}
+        .wb-upmeta{display:inline-flex;align-items:center;gap:8px;font-size:11px;color:${P.ink2};min-width:0;}
+        .wb-upname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;}
+        .wb-upthumb{width:34px;height:34px;object-fit:cover;border:1px solid ${P.rule};flex-shrink:0;}
+        .wb-uprm{background:none;border:none;color:${P.red};font-family:inherit;font-size:11px;cursor:pointer;text-decoration:underline;padding:0;}
         @media(prefers-reduced-motion:reduce){*{transition:none!important;}}
       `}</style>
 
@@ -328,7 +361,7 @@ export default function WallOfShame() {
 
         {shown.length === 0 ? (
           <div style={{ textAlign: "center", color: P.faint, padding: "30px 0", fontSize: 13 }}>
-            No subjects match. The board fills as the bot files rejects.
+            No subjects match. Adjust your search or filters above.
           </div>
         ) : (
           <div className="wb-grid">
@@ -338,13 +371,26 @@ export default function WallOfShame() {
 
         <div className="wb-tip">
           <h2>Submit a tip</h2>
-          <p>Give the wallet or mint and a statement of facts. Tips are checked against the chain and held for review — they do not post to the board until verified.</p>
+          <p>Give the wallet or mint and a statement of facts, plus an optional pump.fun / chart screenshot as proof. Submissions are checked against the chain, the screenshot is screened, and everything is held for review — nothing posts to the board until approved.</p>
           <div className="wb-row">
             <input className="wb-in" value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} placeholder="Dev wallet or token mint *" />
             <input className="wb-in" value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Token name (optional)" />
             <input className="wb-in" style={{ flex: "0 0 110px", minWidth: 0 }} value={form.sol} onChange={(e) => setForm({ ...form, sol: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="SOL taken" />
           </div>
           <textarea className="wb-in" rows={3} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Statement of facts — on-chain / public evidence only *" />
+          <div className="wb-upload">
+            <label className="wb-upbtn">
+              {form.imgName ? "Change screenshot" : "Attach proof screenshot"}
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onPick} style={{ display: "none" }} />
+            </label>
+            {form.image && (
+              <span className="wb-upmeta">
+                <img src={form.image} alt="" className="wb-upthumb" />
+                <span className="wb-upname">{form.imgName}</span>
+                <button type="button" className="wb-uprm" onClick={() => setForm({ ...form, image: "", imgName: "" })}>remove</button>
+              </span>
+            )}
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: flash.includes("required") ? P.red : P.navy, minHeight: 16 }}>{flash}</span>
             <button className="wb-submit" onClick={handleReport}>File tip</button>
