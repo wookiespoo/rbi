@@ -31,6 +31,7 @@ export interface RecordInput {
   confidence?: number | null;
   evidenceTxs?: string[];
   imageUrl?: string | null;
+  submitterWallet?: string;
 }
 
 // Shape the wall component already expects (camelCase + `date`).
@@ -49,6 +50,7 @@ function toUi(row: any) {
     solStolen: row.sol_stolen != null ? Number(row.sol_stolen) : null,
     confidence: row.confidence != null ? Number(row.confidence) : null,
     imageUrl: row.image_url ?? null,
+    submitterWallet: row.submitter_wallet ?? null,
     date: (row.created_at ?? "").slice(0, 10),
   };
 }
@@ -81,6 +83,7 @@ export async function upsertRecord(rec: RecordInput) {
       confidence: rec.confidence ?? null,
       evidence_txs: rec.evidenceTxs ?? [],
       image_url: rec.imageUrl ?? null,
+      submitter_wallet: rec.submitterWallet,
     },
     { onConflict: "token" },
   );

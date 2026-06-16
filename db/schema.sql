@@ -17,6 +17,7 @@ create table if not exists records (
   confidence   numeric,
   evidence_txs text[] default '{}',
   image_url    text,                                -- proof screenshot (public URL)
+  submitter_wallet text,                            -- bounty payout wallet (community submitter)
   created_at   timestamptz default now()
 );
 

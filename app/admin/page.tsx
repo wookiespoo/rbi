@@ -25,6 +25,7 @@ type Row = {
   solStolen?: number | null;
   confidence?: number | null;
   imageUrl?: string | null;
+  submitterWallet?: string | null;
   date?: string;
 };
 
@@ -131,6 +132,7 @@ export default function Admin() {
             <div className="ad-name">{row.name || "Unnamed token"}{row.ticker ? ` · $${row.ticker}` : ""}</div>
             <div className="ad-field"><span>Subject wallet</span>{trunc(row.deployer)}</div>
             <div className="ad-field"><span>Token mint</span>{trunc(row.token)}</div>
+            {row.submitterWallet && <div className="ad-field"><span>Payout wallet</span>{trunc(row.submitterWallet)}</div>}
             {row.solStolen != null && <div className="ad-field"><span>Funds extracted</span>{row.solStolen} SOL</div>}
             {row.confidence != null && <div className="ad-field"><span>AI confidence</span>{Math.round(row.confidence * 100)}%</div>}
             {row.tags && row.tags.length > 0 && (
