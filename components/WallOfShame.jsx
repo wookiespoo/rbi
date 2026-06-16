@@ -187,7 +187,7 @@ export default function WallOfShame() {
   const [records, setRecords] = useState(SEED);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
-  const [form, setForm] = useState({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "", deployer: "" });
+  const [form, setForm] = useState({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "", deployer: "", projectX: "" });
   const [flash, setFlash] = useState("");
 
   useEffect(() => {
@@ -244,11 +244,12 @@ export default function WallOfShame() {
           reason: form.reason.trim(),
           sol: form.sol,
           submitterWallet: form.submitter.trim(),
+          projectX: form.projectX.trim(),
           image: form.image || undefined,
         }),
       });
       const data = await res.json();
-      setForm({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "", deployer: "" });
+      setForm({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "", deployer: "", projectX: "" });
       setFlash(data.message || (data.accepted ? "Tip filed for review." : "Not filed."));
     } catch {
       setFlash("Filing failed — try again.");
@@ -382,6 +383,7 @@ export default function WallOfShame() {
           <textarea className="wb-in" rows={3} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Statement of facts — on-chain / public evidence only *" />
           <div className="wb-row">
             <input className="wb-in" value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Token name (optional)" />
+            <input className="wb-in" value={form.projectX} onChange={(e) => setForm({ ...form, projectX: e.target.value })} placeholder="Token X handle (optional)" />
             <input className="wb-in" value={form.submitter} onChange={(e) => setForm({ ...form, submitter: e.target.value })} placeholder="Your SOL payout wallet — for bounty payouts (optional)" />
           </div>
           <div className="wb-upload">

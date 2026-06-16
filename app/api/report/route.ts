@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const name = (body.name ?? "").trim() || undefined;
     const deployer = (body.deployer ?? "").trim() || undefined;
     const submitterWallet = (body.submitterWallet ?? "").trim() || undefined;
+    const projectX = (body.projectX ?? "").trim() || undefined;
     const image =
       typeof body.image === "string" && body.image.startsWith("data:image/") ? body.image : null;
 
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
       source: "community",
       status: "pending", // hidden until a human approves it in Supabase
       submitterWallet,
+      projectX,
       imageUrl,
       tags: chainOk ? analysis.tags : [],
       solStolen: chainOk ? analysis.solExtracted : null,
