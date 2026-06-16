@@ -187,7 +187,7 @@ export default function WallOfShame() {
   const [records, setRecords] = useState(SEED);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
-  const [form, setForm] = useState({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "" });
+  const [form, setForm] = useState({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "", deployer: "" });
   const [flash, setFlash] = useState("");
 
   useEffect(() => {
@@ -228,8 +228,8 @@ export default function WallOfShame() {
   };
 
   const handleReport = async () => {
-    if (!form.token.trim() || !form.reason.trim()) {
-      setFlash("A wallet or mint and a statement of facts are both required.");
+    if (!form.deployer.trim() || !form.token.trim() || !form.reason.trim()) {
+      setFlash("Dev wallet, token mint, and a statement of facts are all required.");
       return;
     }
     setFlash(form.image ? "Checking the chain and screening the screenshot…" : "Checking it against the chain…");
@@ -238,6 +238,7 @@ export default function WallOfShame() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          deployer: form.deployer.trim(),
           token: form.token.trim(),
           name: form.alias.trim(),
           reason: form.reason.trim(),
@@ -247,7 +248,7 @@ export default function WallOfShame() {
         }),
       });
       const data = await res.json();
-      setForm({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "" });
+      setForm({ token: "", reason: "", sol: "", alias: "", image: "", imgName: "", submitter: "", deployer: "" });
       setFlash(data.message || (data.accepted ? "Tip filed for review." : "Not filed."));
     } catch {
       setFlash("Filing failed — try again.");
@@ -372,14 +373,17 @@ export default function WallOfShame() {
 
         <div className="wb-tip">
           <h2>Submit a tip</h2>
-          <p>Give the wallet or mint and a statement of facts, plus an optional pump.fun / chart screenshot as proof. Submissions are checked against the chain, the screenshot is screened, and everything is held for review — nothing posts to the board until approved.</p>
+          <p>Give the dev wallet, the token mint, and a statement of facts, plus an optional pump.fun / chart screenshot as proof. Submissions are checked against the chain, the screenshot is screened, and everything is held for review — nothing posts to the board until approved.</p>
           <div className="wb-row">
-            <input className="wb-in" value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} placeholder="Dev wallet or token mint *" />
-            <input className="wb-in" value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Token name (optional)" />
+            <input className="wb-in" value={form.deployer} onChange={(e) => setForm({ ...form, deployer: e.target.value })} placeholder="Dev wallet *" />
+            <input className="wb-in" value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} placeholder="Token mint *" />
             <input className="wb-in" style={{ flex: "0 0 110px", minWidth: 0 }} value={form.sol} onChange={(e) => setForm({ ...form, sol: e.target.value.replace(/[^0-9.]/g, "") })} placeholder="SOL taken" />
           </div>
           <textarea className="wb-in" rows={3} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Statement of facts — on-chain / public evidence only *" />
-          <input className="wb-in" value={form.submitter} onChange={(e) => setForm({ ...form, submitter: e.target.value })} placeholder="Your SOL payout wallet — for bounty payouts (optional)" />
+          <div className="wb-row">
+            <input className="wb-in" value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Token name (optional)" />
+            <input className="wb-in" value={form.submitter} onChange={(e) => setForm({ ...form, submitter: e.target.value })} placeholder="Your SOL payout wallet — for bounty payouts (optional)" />
+          </div>
           <div className="wb-upload">
             <label className="wb-upbtn">
               {form.imgName ? "Change screenshot" : "Attach proof screenshot"}
